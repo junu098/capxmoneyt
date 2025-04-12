@@ -13,7 +13,7 @@ from telegram.ext import (
 )
 
 # === CONFIGURATION ===
-TOKEN = "8037210105:AAFbBznD3Mf1rGgGZdrlYoYXAEijr8JEuSg"
+TOKEN = "8073731661:AAEnHItKmA-Xo0bSXzb95UrGrsql-QaZEo0"
 REQUIRED_CHANNELS = ["@ultracashonline", "@westbengalnetwork2"]
 ADMIN_ID = 5944513375
 
@@ -279,7 +279,7 @@ def main():
     app.add_handler(CallbackQueryHandler(handle_callback))
     logger.info("Bot is running...")
     app.run_polling()
- #web server
+#web server
 async def handle(request):
     return web.Response(text="Bot is running!")
 
@@ -288,11 +288,28 @@ async def run_webserver():
     app.router.add_get("/", handle)
     runner = web.AppRunner(app)
     await runner.setup()
-    site = web.TCPSite(runner, "0.0.0.0", 10000)  # Use port 10000 or $PORT
+    site = web.TCPSite(runner, "0.0.0.0", 10000)
     await site.start()
 
 async def run_bot():
-    main()  # Your bot main loop
+    app = ApplicationBuilder().token(TOKEN).build()
+
+    redeem_handler = ConversationHandler(
+        entry_points=[CallbackQueryHandler(handle_callback, pattern="^redeem$")],
+        states={WAITING_FOR_GMAIL: [MessageHandler(filters.TEXT & ~filters.COMMAND, handle_gmail_input)]},
+        fallbacks=[CommandHandler("cancel", cancel)],
+        allow_reentry=True
+    )
+
+    app.add_handler(CommandHandler("start", start))
+    app.add_handler(redeem_handler)
+    app.add_handler(CallbackQueryHandler(handle_callback))
+
+    logger.info("Bot is running...")
+    await app.initialize()
+    await app.start()
+    await app.updater.start_polling()
+    await asyncio.Event().wait()
 
 async def main_all():
     await asyncio.gather(run_webserver(), run_bot())
